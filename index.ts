@@ -1,5 +1,8 @@
 import * as XLSX from 'xlsx';
 import fs from 'fs';
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
 interface Info {
     [address: string]: {
@@ -8,9 +11,9 @@ interface Info {
             {
                 num: number,
                 time: Date
+                level: number,
             }
         ]
-        level: number,
         claimable: number
     }
 }
@@ -21,37 +24,52 @@ const defaultValue = {
     claimable: 0
 }
 
-let claimableData: Info = {}
-const workbook: XLSX.WorkBook = XLSX.readFile('info.xlsx'); // Replace 'example.xlsx' with your file name
+const mongoURL = process.env.mongoURL!
 
-// Assuming only one sheet in the workbook
-const sheetName: string = workbook.SheetNames[0];
-const worksheet: XLSX.WorkSheet = workbook.Sheets[sheetName];
+const UserSchema = new mongoose.Schema({
+    address: { type: String, required: true, unique: true },
+    tokens: [
+        {
+            num: Number,
+            time: Date
+        }
+    ]
+});
 
-// Convert the worksheet to a JSON object
-const data: any[] = XLSX.utils.sheet_to_json(worksheet);
+const UserModel = mongoose.model("user", UserSchema);
+let userInfo: Info
 
-// data.map((val, idx) => {
-//     const address = val.address
-//     if (claimableData[address] == undefined) {
-//         claimableData[address] = defaultValue
-//     }
-//     const action = val.action
-//     const time = val.timestamp
-//     const tokens = val.tokens.toString()
-//     if (action == 'stake') {
-//         const tokenList = tokens.split(';')
-//         tokenList.map((item: any) => {
-//             claimableData[address].token.push({ num: item, time: time })
-//         })
+const start = async () => {
+
+    await mongoose.connect(mongoURL);
+    const data = JSON.parse(fs.readFileSync("data.json", `utf8`))
+    data.map(async (val: any, idx: any) => {
+        const address = val.address
+        const action = val.action
+        const timestamp = val.timestamp
+
+        if (!(address in userInfo)) {
+            userInfo[address] = { token: [{ num: 0, time: new Date(), level: 0 }], claimable: 0 }
+        }
+        
+        const level = 0
+
+        if(action == 'stake') {
+            userInfo[address].token.concat()
+        }
+        const tokenArr = val.tokens.toString().split(';')
+        tokenArr.map((token: any) => {
+
+        })
+    })
+}
+// const dataJson = JSON.stringify(data, null, 4);
+// fs.writeFile('data.json', dataJson, (err) => {
+//     if (err) {
+//         console.log('Error writing file:', err);
+//     } else {
+//         console.log(`wrote file data.json`);
 //     }
 // })
 
-const dataJson = JSON.stringify(data, null, 4);
-fs.writeFile('data.json', dataJson, (err) => {
-    if (err) {
-        console.log('Error writing file:', err);
-    } else {
-        console.log(`wrote file data.json`);
-    }
-})
+start()
